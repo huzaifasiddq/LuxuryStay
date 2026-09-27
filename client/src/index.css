@@ -1,0 +1,55 @@
+:root {
+  --hotel-navy: #0f172a;
+  --hotel-navy-light: #1e293b;
+  --hotel-gold: #d97706;
+  --hotel-gold-soft: #fef3c7;
+  --hotel-bg: #f8fafc;
+  --hotel-border: #e2e8f0;
+}
+
+body {
+  background-color: var(--hotel-bg);
+  color: #334155;
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom Luxury Buttons */
+.btn-luxury {
+  background-color: var(--hotel-navy);
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border: 1px solid var(--hotel-navy);
+  transition: all 0.2s ease;
+}
+
+.btn-luxury:hover {
+  background-color: var(--hotel-navy-light);
+  color: #ffffff;
+}
+
+.btn-gold {
+  background-color: var(--hotel-gold);
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border: 1px solid var(--hotel-gold);
+  transition: all 0.2s ease;
+}
+
+.btn-gold:hover {
+  background-color: #b45309;
+  color: #ffffff;
+}
+
+/* Custom Card Style */
+.luxury-card {
+  background: #ffffff;
+  border: 1px solid var(--hotel-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
