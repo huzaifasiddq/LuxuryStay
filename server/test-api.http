@@ -1,0 +1,159 @@
+### 1. Test Server Root
+GET http://localhost:5000/
+
+### 2. Register Admin User
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Super Admin",
+  "email": "admin@luxurystay.com",
+  "password": "adminpassword123",
+  "role": "Admin",
+  "phone": "+923001234567"
+}
+
+### 3. Login Admin User
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@luxurystay.com",
+  "password": "adminpassword123"
+}
+
+### 1. Get All Rooms (Public - Check if empty or existing)
+GET http://localhost:5000/api/rooms
+
+### 2. Create Room 101 (Admin Protected)
+POST http://localhost:5000/api/rooms
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "roomNumber": "101",
+  "roomType": "Deluxe",
+  "pricePerNight": 12000,
+  "status": "Available",
+  "floor": 1,
+  "features": ["Wi-Fi", "AC", "Smart TV", "Balcony"]
+}
+
+### 3. Create Room 102 (Admin Protected)
+POST http://localhost:5000/api/rooms
+Content-Type: application/json
+Authorization: Bearer YOUR_ADMIN_TOKEN_HERE
+
+{
+  "roomNumber": "102",
+  "roomType": "Suite",
+  "pricePerNight": 25000,
+  "status": "Available",
+  "floor": 1,
+  "features": ["Wi-Fi", "AC", "Sea View", "Mini Bar", "Jacuzzi"]
+}
+
+### 4. Get Available Rooms Only (Filter Query)
+GET http://localhost:5000/api/rooms?status=Available
+
+### 5. Create New Guest (Admin/Receptionist Protected)
+POST http://localhost:5000/api/guests
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "fullName": "Ahmed Khan",
+  "email": "ahmed.khan@example.com",
+  "phone": "+923211234567",
+  "idType": "CNIC",
+  "idNumber": "42101-1234567-1",
+  "country": "Pakistan",
+  "address": "Gulshan-e-Iqbal, Karachi",
+  "specialPreferences": "High floor, quiet room"
+}
+
+### 6. Get All Guests
+GET http://localhost:5000/api/guests
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+### 7. Create Reservation (Book Room 101 for 2 Nights)
+POST http://localhost:5000/api/reservations
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "guestId": "6ab786af813403f83a43a6c6",
+  "roomId": "6ab78413a4d15d4b78c1bd37",
+  "checkInDate": "2026-10-01T14:00:00.000Z",
+  "checkOutDate": "2026-10-03T11:00:00.000Z"
+}
+
+### 8. Get All Reservations (Populated Guest & Room)
+GET http://localhost:5000/api/reservations
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+### 9. Check-In Guest (Updates Room to 'Occupied')
+PATCH http://localhost:5000/api/reservations/6ab7891fadb9cdec58d80887/status
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "status": "CheckedIn"
+}
+
+### 10. Verify Room 101 Status is Now Occupied
+GET http://localhost:5000/api/rooms
+
+### 11. Generate Invoice with Add-on Services
+POST http://localhost:5000/api/invoices
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "reservationId": "6ab7891fadb9cdec58d80887",
+  "services": [
+    { "name": "Airport Shuttle", "cost": 3000 },
+    { "name": "Dinner Buffet", "cost": 2500 }
+  ],
+  "taxRate": 0.16,
+  "paymentMethod": "Credit Card"
+}
+
+### 12. Get All Invoices
+GET http://localhost:5000/api/invoices
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+### 13. Record Payment (Mark as Paid)
+PATCH http://localhost:5000/api/invoices/6ab78c8e7b9b49d9350314e1/payment
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "paymentStatus": "Paid",
+  "paymentMethod": "Credit Card"
+}
+
+### 1. Create Fresh Housekeeping Task
+POST http://localhost:5000/api/tasks
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "title": "Deep clean Room 101",
+  "description": "Full sanitization, bedsheets change, and floor polish.",
+  "room": "6ab78413a4d15d4b78c1bd37",
+  "taskType": "Housekeeping",
+  "priority": "High"
+}
+
+### 2. Mark Task as Completed
+PATCH http://localhost:5000/api/tasks/6ab7a2d621fe7033c47786cf/status
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjc3NzZkZWE1M2VmOTllNjE4NWVjZiIsImlhdCI6MTc5MDQxMTYxMSwiZXhwIjoxNzkxMDE2NDExfQ.pK0gyvbVjhbHdGiCYxa8goNTPD1O1qpFGxbGxu3nLiA
+
+{
+  "status": "Completed"
+}
+
+### 3. Check Room 101 Status (Should be 'Available')
+GET http://localhost:5000/api/rooms
