@@ -58,6 +58,23 @@ export default function Reservations() {
     fetchData();
   }, []);
 
+  const handleStatusUpdate = async (id, status) => {
+    const confirmMsg = {
+      CheckedIn: 'Check in this guest? Room will be marked Occupied.',
+      CheckedOut: 'Check out this guest? Room will be sent to Cleaning.',
+      Cancelled: 'Cancel this reservation? Room will be released as Available.',
+    }[status];
+
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+
+    try {
+      await API.patch(`/reservations/${id}/status`, { status });
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update reservation status');
+    }
+  };
+
   // Auto-calculate Total Amount when room or dates change
   useEffect(() => {
     if (formData.roomId && formData.checkInDate && formData.checkOutDate) {
@@ -208,10 +225,13 @@ export default function Reservations() {
                   <th>Total Amount</th>
                   <th>Booking Status</th>
                   <th>Payment</th>
+                  <th className="text-end pe-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredReservations.map((b) => (
+                {filteredReservations.map((b) => {
+                  const currentStatus = b.status || b.bookingStatus;
+                  return (
                   <tr key={b._id}>
                     <td className="ps-4">
                       <div className="d-flex align-items-center gap-2">
@@ -230,7 +250,7 @@ export default function Reservations() {
                         <div>
                           <div className="fw-semibold">Room {b.room?.roomNumber || 'N/A'}</div>
                           <div className="text-muted small" style={{ fontSize: '11px' }}>
-                            {b.room?.type}
+                            {b.room?.roomType}
                           </div>
                         </div>
                       </div>
@@ -244,10 +264,43 @@ export default function Reservations() {
                     <td>
                       <span className="fw-bold fs-6 text-dark">${b.totalAmount || 0}</span>
                     </td>
-                    <td>{getBookingBadge(b.status || b.bookingStatus)}</td>
+                    <td>{getBookingBadge(currentStatus)}</td>
                     <td>{getPaymentBadge(b.paymentStatus)}</td>
+                    <td className="text-end pe-4">
+                      {(currentStatus === 'Pending' || currentStatus === 'Confirmed') && (
+                        <>
+                          <button
+                            className="btn btn-sm btn-outline-success me-1"
+                            title="Check In"
+                            onClick={() => handleStatusUpdate(b._id, 'CheckedIn')}
+                          >
+                            <CheckCircle size={14} /> Check-In
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            title="Cancel"
+                            onClick={() => handleStatusUpdate(b._id, 'Cancelled')}
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </>
+                      )}
+                      {currentStatus === 'CheckedIn' && (
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          title="Check Out"
+                          onClick={() => handleStatusUpdate(b._id, 'CheckedOut')}
+                        >
+                          <Clock size={14} /> Check-Out
+                        </button>
+                      )}
+                      {(currentStatus === 'CheckedOut' || currentStatus === 'Cancelled') && (
+                        <span className="text-muted small">—</span>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -302,7 +355,7 @@ export default function Reservations() {
                         <option value="">-- Choose Room --</option>
                         {rooms.map((r) => (
                           <option key={r._id} value={r._id}>
-                            Room {r.roomNumber} - {r.type} (${r.pricePerNight}/night) [{r.status}]
+                            Room {r.roomNumber} - {r.roomType} (${r.pricePerNight}/night) [{r.status}]
                           </option>
                         ))}
                       </select>

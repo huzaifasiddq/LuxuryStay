@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Hotel, Lock, Mail, AlertCircle } from 'lucide-react';
+import { getDefaultRoute } from '../utils/roles';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,8 +19,8 @@ export default function Login() {
     setSubmitting(true);
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const loggedInUser = await login(email, password);
+      navigate(getDefaultRoute(loggedInUser?.role));
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials or server error');
     } finally {

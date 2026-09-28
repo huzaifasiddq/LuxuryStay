@@ -10,8 +10,15 @@ import {
   CheckSquare, 
   LogOut, 
   Hotel,
-  ShieldCheck
+  ShieldCheck,
+  UserCog,
+  Settings as SettingsIcon,
+  MessageSquare,
+  Bell as BellIcon,
+  BarChart3
 } from 'lucide-react';
+import NotificationBell from './NotificationBell';
+import { FRONT_OFFICE, MANAGEMENT, isOperational } from '../utils/roles';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
@@ -22,14 +29,22 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Rooms', path: '/rooms', icon: BedDouble },
-    { name: 'Guests', path: '/guests', icon: Users },
-    { name: 'Reservations', path: '/reservations', icon: CalendarCheck },
-    { name: 'Invoices', path: '/invoices', icon: Receipt },
-    { name: 'Tasks', path: '/tasks', icon: CheckSquare },
+  // Sidebar is built per role so each department only sees what it needs
+  const ALL_NAV = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: FRONT_OFFICE },
+    { name: 'Rooms', path: '/rooms', icon: BedDouble, roles: null }, // everyone (view-only for departments)
+    { name: 'Guests', path: '/guests', icon: Users, roles: FRONT_OFFICE },
+    { name: 'Reservations', path: '/reservations', icon: CalendarCheck, roles: FRONT_OFFICE },
+    { name: 'Invoices', path: '/invoices', icon: Receipt, roles: FRONT_OFFICE },
+    { name: isOperational(user?.role) ? 'My Tasks' : 'Tasks', path: '/tasks', icon: CheckSquare, roles: null },
+    { name: 'Service Requests', path: '/service-requests', icon: BellIcon, roles: [...FRONT_OFFICE, 'Housekeeping', 'Kitchen', 'Laundry'] },
+    { name: 'Feedback', path: '/feedback', icon: MessageSquare, roles: FRONT_OFFICE },
+    { name: 'Staff', path: '/staff', icon: UserCog, roles: MANAGEMENT },
+    { name: 'Reports', path: '/reports', icon: BarChart3, roles: MANAGEMENT },
+    { name: 'Settings', path: '/settings', icon: SettingsIcon, roles: ['Admin'] },
   ];
+
+  const navItems = ALL_NAV.filter((item) => !item.roles || item.roles.includes(user?.role));
 
   return (
     <div className="d-flex min-vh-100 bg-light">
@@ -114,13 +129,16 @@ export default function Layout({ children }) {
       {/* Main Content Area */}
       <div className="d-flex flex-column flex-grow-1 overflow-auto">
         <header className="navbar navbar-expand bg-white border-bottom px-4 py-3 sticky-top">
-          <div className="container-fluid p-0">
-            <h5 className="mb-0 fw-bold" style={{ color: 'var(--hotel-navy)' }}>
-              Staff Portal
-            </h5>
-            <div className="text-muted small">
-              Connected as: <strong className="text-dark">{user?.email}</strong>
+          <div className="container-fluid p-0 d-flex justify-content-between align-items-center">
+            <div>
+              <h5 className="mb-0 fw-bold" style={{ color: 'var(--hotel-navy)' }}>
+                Staff Portal
+              </h5>
+              <div className="text-muted small">
+                Connected as: <strong className="text-dark">{user?.email}</strong>
+              </div>
             </div>
+            <NotificationBell />
           </div>
         </header>
 

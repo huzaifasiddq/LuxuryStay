@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
+import { useAuth } from '../context/useAuth';
 import { 
   BedDouble, 
   Plus, 
@@ -8,10 +9,15 @@ import {
   CheckCircle2, 
   Clock, 
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 
 export default function Rooms() {
+  const { user } = useAuth();
+  const canAddRoom = ['Admin', 'Manager'].includes(user?.role); // add + edit details
+  const canDeleteRoom = user?.role === 'Admin';
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -23,13 +29,17 @@ export default function Rooms() {
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
+  const EMPTY_FORM = {
     roomNumber: '',
-    type: 'Deluxe',
+    roomType: 'Deluxe',
     pricePerNight: '',
     capacity: 2,
-    amenities: 'WiFi, TV, AC, Mini Bar',
-  });
+    floor: 1,
+    status: 'Available',
+    features: 'WiFi, TV, AC, Mini Bar',
+  };
+  const [editingRoom, setEditingRoom] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
 
   // Fetch Rooms
@@ -50,41 +60,74 @@ export default function Rooms() {
     fetchRooms();
   }, []);
 
-  // Handle New Room Submit
+  const openCreateModal = () => {
+    setEditingRoom(null);
+    setFormData(EMPTY_FORM);
+    setShowModal(true);
+  };
+
+  const openEditModal = (room) => {
+    setEditingRoom(room);
+    setFormData({
+      roomNumber: room.roomNumber,
+      roomType: room.roomType || 'Single',
+      pricePerNight: room.pricePerNight,
+      capacity: room.capacity || 2,
+      floor: room.floor || 1,
+      status: room.status || 'Available',
+      features: Array.isArray(room.features) ? room.features.join(', ') : '',
+    });
+    setShowModal(true);
+  };
+
+  // Handle Create / Update Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       const payload = {
-        ...formData,
+        roomNumber: formData.roomNumber,
+        roomType: formData.roomType,
         pricePerNight: Number(formData.pricePerNight),
         capacity: Number(formData.capacity),
-        amenities: typeof formData.amenities === 'string' 
-          ? formData.amenities.split(',').map(a => a.trim()) 
-          : formData.amenities
+        floor: Number(formData.floor),
+        status: formData.status,
+        features: String(formData.features || '')
+          .split(',')
+          .map((a) => a.trim())
+          .filter(Boolean),
       };
 
-      await API.post('/rooms', payload);
+      if (editingRoom) {
+        await API.put(`/rooms/${editingRoom._id}`, payload);
+      } else {
+        await API.post('/rooms', payload);
+      }
       setShowModal(false);
-      setFormData({
-        roomNumber: '',
-        type: 'Deluxe',
-        pricePerNight: '',
-        capacity: 2,
-        amenities: 'WiFi, TV, AC, Mini Bar',
-      });
+      setEditingRoom(null);
+      setFormData(EMPTY_FORM);
       fetchRooms();
     } catch (err) {
-      alert(err.response?.data?.message || 'Error creating room');
+      alert(err.response?.data?.message || 'Error saving room');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (room) => {
+    if (!window.confirm(`Delete Room ${room.roomNumber} permanently?`)) return;
+    try {
+      await API.delete(`/rooms/${room._id}`);
+      fetchRooms();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete room');
     }
   };
 
   // Filtered rooms logic
   const filteredRooms = rooms.filter((r) => {
     const matchesSearch = r.roomNumber?.toString().toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === 'All' || r.type === typeFilter;
+    const matchesType = typeFilter === 'All' || r.roomType === typeFilter;
     const matchesStatus = statusFilter === 'All' || r.status === statusFilter;
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -115,12 +158,14 @@ export default function Rooms() {
             Configure hotel inventory, pricing, and live room states
           </p>
         </div>
+        {canAddRoom && (
         <button 
           className="btn btn-luxury d-flex align-items-center gap-2"
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
         >
           <Plus size={16} /> Add New Room
         </button>
+        )}
       </div>
 
       {/* Filters Bar */}
@@ -147,8 +192,11 @@ export default function Rooms() {
               onChange={(e) => setTypeFilter(e.target.value)}
             >
               <option value="All">All Types</option>
+              <option value="Single">Single</option>
+              <option value="Double">Double</option>
               <option value="Standard">Standard</option>
               <option value="Deluxe">Deluxe</option>
+              <option value="Suite">Suite</option>
               <option value="Executive Suite">Executive Suite</option>
               <option value="Presidential Suite">Presidential Suite</option>
             </select>
@@ -192,7 +240,7 @@ export default function Rooms() {
                     </span>
                     {getStatusBadge(room.status)}
                   </div>
-                  <div className="text-muted small mb-2">{room.type}</div>
+                  <div className="text-muted small mb-2">{room.roomType}{room.floor ? ` · Floor ${room.floor}` : ''}</div>
                   <div className="d-flex align-items-baseline gap-1 mb-3">
                     <span className="fs-4 fw-bold text-dark">${room.pricePerNight}</span>
                     <span className="text-muted small">/ night</span>
@@ -202,9 +250,31 @@ export default function Rooms() {
                 <div className="pt-2 border-top d-flex justify-content-between text-muted small">
                   <span>Capacity: {room.capacity || 2} Guests</span>
                   <span className="text-truncate ps-2" style={{ maxWidth: '140px' }}>
-                    {Array.isArray(room.amenities) ? room.amenities.join(', ') : room.amenities}
+                    {Array.isArray(room.features) ? room.features.join(', ') : ''}
                   </span>
                 </div>
+
+                {(canAddRoom || canDeleteRoom) && (
+                  <div className="d-flex gap-2 mt-3">
+                    {canAddRoom && (
+                      <button
+                        className="btn btn-sm btn-outline-secondary flex-fill d-flex align-items-center justify-content-center gap-1"
+                        onClick={() => openEditModal(room)}
+                      >
+                        <Edit2 size={14} /> Edit
+                      </button>
+                    )}
+                    {canDeleteRoom && (
+                      <button
+                        className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center"
+                        title="Delete room"
+                        onClick={() => handleDelete(room)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -218,7 +288,7 @@ export default function Rooms() {
             <div className="modal-content border-0 shadow">
               <div className="modal-header border-bottom">
                 <h5 className="modal-title fw-bold" style={{ color: 'var(--hotel-navy)' }}>
-                  Add New Room
+                  {editingRoom ? `Edit Room ${editingRoom.roomNumber}` : 'Add New Room'}
                 </h5>
                 <button 
                   type="button" 
@@ -242,13 +312,16 @@ export default function Rooms() {
                     </div>
                     <div className="col-6">
                       <label className="form-label small fw-semibold">Room Type</label>
-                      <select 
+                      <select
                         className="form-select"
-                        value={formData.type}
-                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                        value={formData.roomType}
+                        onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
                       >
+                        <option value="Single">Single</option>
+                        <option value="Double">Double</option>
                         <option value="Standard">Standard</option>
                         <option value="Deluxe">Deluxe</option>
+                        <option value="Suite">Suite</option>
                         <option value="Executive Suite">Executive Suite</option>
                         <option value="Presidential Suite">Presidential Suite</option>
                       </select>
@@ -270,20 +343,43 @@ export default function Rooms() {
                         type="number" 
                         className="form-control" 
                         min="1"
-                        max="6"
+                        max="10"
                         required
                         value={formData.capacity}
                         onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
                       />
                     </div>
+                    <div className="col-6">
+                      <label className="form-label small fw-semibold">Floor</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        min="0"
+                        value={formData.floor}
+                        onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label small fw-semibold">Status</label>
+                      <select
+                        className="form-select"
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      >
+                        <option value="Available">Available</option>
+                        <option value="Occupied">Occupied</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Maintenance">Maintenance</option>
+                      </select>
+                    </div>
                     <div className="col-12">
                       <label className="form-label small fw-semibold">Amenities (comma-separated)</label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
+                      <input
+                        type="text"
+                        className="form-control"
                         placeholder="WiFi, Balcony, King Bed, Mini Bar"
-                        value={formData.amenities}
-                        onChange={(e) => setFormData({ ...formData, amenities: e.target.value })}
+                        value={formData.features}
+                        onChange={(e) => setFormData({ ...formData, features: e.target.value })}
                       />
                     </div>
                   </div>
@@ -301,7 +397,7 @@ export default function Rooms() {
                     className="btn btn-luxury btn-sm"
                     disabled={submitting}
                   >
-                    {submitting ? 'Saving...' : 'Create Room'}
+                    {submitting ? 'Saving...' : editingRoom ? 'Save Changes' : 'Create Room'}
                   </button>
                 </div>
               </form>

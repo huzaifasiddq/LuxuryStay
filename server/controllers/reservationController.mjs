@@ -1,6 +1,7 @@
 import Reservation from '../models/Reservation.mjs';
 import Room from '../models/Room.mjs';
 import Guest from '../models/Guest.mjs';
+import { notifyRole } from './notificationController.mjs';
 
 // Helper function to generate unique human-readable booking ID
 const generateBookingId = () => {
@@ -108,6 +109,8 @@ export const createReservation = async (req, res) => {
       status: 'Confirmed',
       bookedBy: req.user._id,
     });
+
+    await notifyRole('Receptionist', `New booking ${reservation.bookingId} confirmed`, 'Booking', '/reservations');
 
     res.status(201).json(reservation);
   } catch (error) {

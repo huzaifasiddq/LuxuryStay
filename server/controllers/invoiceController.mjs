@@ -1,5 +1,6 @@
 import Invoice from '../models/Invoice.mjs';
 import Reservation from '../models/Reservation.mjs';
+import Settings from '../models/Settings.mjs';
 
 // Helper function to generate clean invoice numbering
 const generateInvoiceNumber = () => {
@@ -59,7 +60,15 @@ export const getInvoiceById = async (req, res) => {
 // @access  Private (Admin, Manager, Receptionist)
 export const createInvoice = async (req, res) => {
   try {
-    const { reservationId, services = [], taxRate = 0.16, paymentMethod = 'Cash' } = req.body;
+    const { reservationId, services = [], taxRate, paymentMethod = 'Cash' } = req.body;
+
+    // Fall back to the centrally configured tax rate (System Settings) when
+    // the caller doesn't explicitly override it.
+    let effectiveTaxRate = taxRate;
+    if (effectiveTaxRate === undefined) {
+      const settings = await Settings.findOne();
+      effectiveTaxRate = settings?.taxRate ?? 0.16;
+    }
 
     const reservation = await Reservation.findById(reservationId).populate('room');
     if (!reservation) {
@@ -78,7 +87,7 @@ export const createInvoice = async (req, res) => {
     const roomCharges = reservation.totalAmount;
     const servicesTotal = services.reduce((acc, curr) => acc + Number(curr.cost || 0), 0);
     const subtotal = roomCharges + servicesTotal;
-    const taxAmount = Math.round(subtotal * taxRate);
+    const taxAmount = Math.round(subtotal * effectiveTaxRate);
     const totalAmount = subtotal + taxAmount;
 
     const invoice = await Invoice.create({

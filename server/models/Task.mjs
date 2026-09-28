@@ -28,7 +28,7 @@ const taskSchema = new mongoose.Schema(
     },
     taskType: {
       type: String,
-      enum: ['Housekeeping', 'Maintenance', 'RoomService', 'Inspection'],
+      enum: ['Housekeeping', 'Maintenance', 'RoomService', 'Inspection', 'Laundry', 'Kitchen'],
       default: 'Housekeeping',
     },
     priority: {

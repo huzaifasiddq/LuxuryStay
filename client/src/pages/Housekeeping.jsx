@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
+import { useAuth } from '../context/useAuth';
+import { FRONT_OFFICE, isOperational } from '../utils/roles';
 import { 
   Sparkles, 
   Plus, 
@@ -15,6 +17,9 @@ import {
 } from 'lucide-react';
 
 export default function Housekeeping() {
+  const { user } = useAuth();
+  const canCreateTask = FRONT_OFFICE.includes(user?.role);
+  const departmentView = isOperational(user?.role);
   const [tasks, setTasks] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,18 +155,22 @@ export default function Housekeeping() {
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h3 className="fw-bold mb-1" style={{ color: 'var(--hotel-navy)' }}>
-            Housekeeping & Maintenance
+            {departmentView ? `My Tasks — ${user?.role}` : 'Housekeeping & Maintenance'}
           </h3>
           <p className="text-muted mb-0 small">
-            Assign room cleanings, inspections, maintenance tickets, and track room readiness
+            {departmentView
+              ? 'Tasks assigned to you or waiting to be picked up by your department'
+              : 'Assign room cleanings, inspections, maintenance tickets, and track room readiness'}
           </p>
         </div>
-        <button 
+        {canCreateTask && (
+<button 
           className="btn btn-luxury d-flex align-items-center gap-2"
           onClick={() => setShowModal(true)}
         >
           <Plus size={16} /> New Task
         </button>
+)}
       </div>
 
       {/* Filter Row */}
@@ -192,6 +201,8 @@ export default function Housekeeping() {
               <option value="Maintenance">Maintenance</option>
               <option value="RoomService">Room Service</option>
               <option value="Inspection">Inspection</option>
+<option value="Laundry">Laundry</option>
+<option value="Kitchen">Kitchen</option>
             </select>
           </div>
           <div className="col-6 col-md-3">
@@ -343,7 +354,7 @@ export default function Housekeeping() {
                         <option value="">-- Select Room --</option>
                         {rooms.map((r) => (
                           <option key={r._id} value={r._id}>
-                            Room {r.roomNumber} ({r.type}) — Status: [{r.status}]
+                            Room {r.roomNumber} ({r.roomType}) — Status: [{r.status}]
                           </option>
                         ))}
                       </select>
@@ -361,6 +372,8 @@ export default function Housekeeping() {
                         <option value="Maintenance">Maintenance</option>
                         <option value="RoomService">Room Service</option>
                         <option value="Inspection">Inspection</option>
+<option value="Laundry">Laundry</option>
+<option value="Kitchen">Kitchen</option>
                       </select>
                     </div>
 

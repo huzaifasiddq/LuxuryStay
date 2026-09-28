@@ -22,6 +22,6 @@ router
 
 router
   .route('/:id/status')
-  .patch(authorize('Admin', 'Manager', 'Housekeeping', 'Maintenance'), updateTaskStatus);
+  .patch(authorize('Admin', 'Manager', 'Housekeeping', 'Maintenance', 'Laundry', 'Kitchen'), updateTaskStatus);
 
 export default router;

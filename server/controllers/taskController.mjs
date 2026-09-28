@@ -1,5 +1,6 @@
 import Task from '../models/Task.mjs';
 import Room from '../models/Room.mjs';
+import { notifyRole } from './notificationController.mjs';
 
 // @desc    Get all tasks (with filters)
 // @route   GET /api/tasks
@@ -9,10 +10,21 @@ export const getTasks = async (req, res) => {
     const { status, taskType, priority, assignedTo } = req.query;
     const filter = {};
 
+    const OPERATIONAL_ROLES = ['Housekeeping', 'Maintenance', 'Laundry', 'Kitchen'];
+
+    if (OPERATIONAL_ROLES.includes(req.user.role)) {
+      // Department staff only see tasks matching their own department,
+      // and only ones assigned to them or not yet assigned to anyone.
+      filter.taskType = req.user.role;
+      filter.$or = [{ assignedTo: req.user._id }, { assignedTo: null }];
+    } else {
+      // Admin / Manager / Receptionist see everything, with optional filters
+      if (taskType) filter.taskType = taskType;
+      if (assignedTo) filter.assignedTo = assignedTo;
+    }
+
     if (status) filter.status = status;
-    if (taskType) filter.taskType = taskType;
     if (priority) filter.priority = priority;
-    if (assignedTo) filter.assignedTo = assignedTo;
 
     const tasks = await Task.find(filter)
       .populate('room', 'roomNumber roomType status floor')
@@ -71,6 +83,13 @@ export const createTask = async (req, res) => {
       status: 'Pending',
     });
 
+    await notifyRole(
+      task.taskType === 'Maintenance' ? 'Maintenance' : 'Housekeeping',
+      `New ${task.taskType} task: ${task.title}`,
+      'Maintenance',
+      '/tasks'
+    );
+
     res.status(201).json(task);
   } catch (error) {
     console.error('Error creating task:', error.message);
@@ -93,6 +112,29 @@ export const updateTaskStatus = async (req, res) => {
     const updateFields = { status };
     if (status === 'Completed') {
       updateFields.completedAt = new Date();
+    }
+
+    const existingTask = await Task.findById(req.params.id);
+    if (!existingTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Department staff may only update tasks in their own department, and
+    // only if it's assigned to them or still unassigned.
+    const OPERATIONAL_ROLES = ['Housekeeping', 'Maintenance', 'Laundry', 'Kitchen'];
+    if (OPERATIONAL_ROLES.includes(req.user.role)) {
+      const isOwnDepartment = existingTask.taskType === req.user.role;
+      const isOwnOrUnassigned =
+        !existingTask.assignedTo || String(existingTask.assignedTo) === String(req.user._id);
+
+      if (!isOwnDepartment || !isOwnOrUnassigned) {
+        return res.status(403).json({ message: 'You can only update tasks assigned to your department' });
+      }
+
+      // Claim the task on first interaction if it was unassigned
+      if (!existingTask.assignedTo) {
+        updateFields.assignedTo = req.user._id;
+      }
     }
 
     const task = await Task.findByIdAndUpdate(req.params.id, updateFields, {
